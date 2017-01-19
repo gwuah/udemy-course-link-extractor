@@ -138,3 +138,26 @@ def get_course_id(course_link):
         print('Found course id: %s', course_id)
 
     return course_id
+def suck_endpoint(course_id) :
+    """Getting data from endpoint"""
+    course_url = 'https://www.udemy.com/api-2.0/courses/{0}/cached-subscriber-curriculum-items?fields[asset]=@min,title,filename,asset_type,external_url,length&fields[chapter]=@min,description,object_index,title,sort_order&fields[lecture]=@min,object_index,asset,supplementary_assets,sort_order,is_published,is_free&fields[quiz]=@min,object_index,title,sort_order,is_published&page_size=550'.format(
+        course_id)
+    course_data = session.get(course_url).json()
+    _write('Endpoint', str(course_data))
+
+def logout() :
+    '''Logout From Udemy'''
+    try :
+        session.get('http://www.udemy.com/user/logout')
+        return 'Logout Sucessful'
+    except error : return error_box[3]
+
+if __name__ == '__main__' :
+    course = input('Enter Course-Name : ')
+    course_name = despace(course)
+    login()
+    course_id = get_course_id('https://www.udemy.com/' + course)
+    suck_endpoint(course_id)
+    while logout() != error_box[3] : 
+        logout()
+    else : sys.exit()
