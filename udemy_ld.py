@@ -1,6 +1,7 @@
 import requests
 import requests.sessions
 import sys
+import re
 
 Information = {'Author_Name':'Griffith Awuah',
                'Written on' : '19th January, 2017',
@@ -73,7 +74,7 @@ def get_csrf_token():
 
 def _write(filename, _data) :
     with open(filename + '.txt', 'w') as file :
-        file.write(_data)
+        file.write(str(_data))
 
 def login() :
     ''' Login To Udemy '''
@@ -141,10 +142,9 @@ def get_course_id(course_link):
 
 def suck_endpoint(course_id) :
     """Getting data from endpoint"""
-    course_url = 'https://www.udemy.com/api-2.0/courses/{0}/cached-subscriber-curriculum-items?fields[asset]=@min,title,filename,asset_type,external_url,length&fields[chapter]=@min,description,object_index,title,sort_order&fields[lecture]=@min,object_index,asset,supplementary_assets,sort_order,is_published,is_free&fields[quiz]=@min,object_index,title,sort_order,is_published&page_size=550'.format(
-        course_id)
+    course_url = 'https://www.udemy.com/api-2.0/courses/{0}/cached-subscriber-curriculum-items?fields[asset]=@min,title,filename,asset_type,external_url,length&fields[chapter]=@min,description,object_index,title,sort_order&fields[lecture]=@min,object_index,asset,supplementary_assets,sort_order,is_published,is_free&fields[quiz]=@min,object_index,title,sort_order,is_published&page_size=550'.format(str(course_id))
     course_data = session.get(course_url).json()
-    _write('Endpoint', course_data)
+    _write('Course-Link', course_data)
 
 def logout() :
     '''Logout From Udemy'''
@@ -158,8 +158,10 @@ if __name__ == '__main__' :
     course_name = despace(course)
     print(course_name)
     login()
-    course_id = get_course_id()
+    course_id = int(input('Enter Your Course ID :> '))
     suck_endpoint(course_id)
-    while logout() != error_box[3] : 
-        logout()
-    else : sys.exit()
+    print('done')
+    print('logging out')
+    logout()
+    print('logged out successfully')
+    
