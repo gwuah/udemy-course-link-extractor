@@ -3,16 +3,6 @@ import requests.sessions
 import sys
 import re
 
-Information = {'Author_Name':'Griffith Awuah',
-               'Written on' : '19th January, 2017',
-               'Description' : 'Library Used To Pull Links for all the lectures of a Udemy Course',
-               'Health' : '99%',
-               'Buggyness' : '*',
-               'Dependencies' : [{'Requests': 'Kenneth Reitz',
-                                  'Udemy-dl': 'Nishad'
-                                  }
-               ]
-}
 
 error_box = ['<li>You have exceeded the maximum number of requests per hour.</li>',
              '<li>Please check your email and password.</li>',
@@ -58,7 +48,7 @@ def user_form() :
 
 def despace(course_name) :
     _x = course_name.split()
-    return ''.join(word for word in _x)
+    return '-'.join(word for word in _x)
 
 def get_csrf_token():
     """Extractig CSRF Token from login page."""
@@ -72,10 +62,11 @@ def get_csrf_token():
         match = re.search(r"name='csrfmiddlewaretoken'\s+value='(.*)'", response.text)
         return match.group(1)
 
-def _write(filename, _data) :
+def write_to_file(filename, _data) :
     with open(filename + '.txt', 'w') as file :
-        file.write(str(_data))
-
+        for url in _data :
+            file.write(str(url) + "\n")
+            
 def login() :
     ''' Login To Udemy '''
     login_url = 'https://www.udemy.com/join/login-popup/?displayType=ajax&display_type=popup&showSkipButton=1&returnUrlAfterLogin=https%3A%2F%2Fwww.udemy.com%2F&next=https%3A%2F%2Fwww.udemy.com%2F&locale=en_US'
@@ -111,40 +102,29 @@ def login() :
 
     print("Login success.")
 
-def get_course_id(course_link):
+def get_course_id(courseName):
     """Retrieving course ID."""
-    
+    course_link = "https://www.udemy.com/{}/learn/v4/overview".format(courseName)
     response = session.get(course_link)
-    response_text = response.text
+    markup = response.text
 
-    if 'data-purpose="take-this-course-button"' in response_text:
+    if 'data-purpose="take-this-course-button"' in markup:
         print('Please Enroll in this course')
         sys.exit(1)
 
-    print('Searching course id...')
-    matches = re.search(r'data-course-id="(\d+)"', response_text, re.IGNORECASE)
-    if matches:
-        course_id = matches.groups()[0]
-    else:
-        matches = re.search(r'property="og:image"\s+content="([^"]+)"', response_text, re.IGNORECASE)  # GIVE ATTENTION HERE. THERES A BUG SOMEHWERE HERE
-        try :
-            course_id = matches.groups()[0].rsplit('/', 1)[-1].split('_', 1)[0] 
-        except :
-            course_id = None
+    print('Searching for course id...')
+    match = re.search(r'property="og:image"\s+content="([^"]+)"', markup, re.IGNORECASE).groups()[0]
+    print(match)
+    courseId = re.search(r'(\d+)_', match).groups()[0]
+    print('Found course id: %s', courseId)
+    return int(courseId)
 
-    if not course_id:
-        print('Course id not found!')
-        sys.exit(1)
-    else:
-        print('Found course id: %s', course_id)
-
-    return course_id
-
-def suck_endpoint(course_id) :
+def suck_endpoint(courseId) :
     """Getting data from endpoint"""
-    course_url = 'https://www.udemy.com/api-2.0/courses/{0}/cached-subscriber-curriculum-items?fields[asset]=@min,title,filename,asset_type,external_url,length&fields[chapter]=@min,description,object_index,title,sort_order&fields[lecture]=@min,object_index,asset,supplementary_assets,sort_order,is_published,is_free&fields[quiz]=@min,object_index,title,sort_order,is_published&page_size=550'.format(str(course_id))
-    course_data = session.get(course_url).json()
-    _write('Course-Link', course_data)
+    course_url = 'https://www.udemy.com/api-2.0/courses/{0}/cached-subscriber-curriculum-items?fields[asset]=@min,title,filename,asset_type,external_url,length&fields[chapter]=@min,description,object_index,title,sort_order&fields[lecture]=@min,object_index,asset,supplementary_assets,sort_order,is_published,is_free&fields[quiz]=@min,object_index,title,sort_order,is_published&page_size=550'.format(str(courseId))
+    data = session.get(course_url).json()
+    course_data = parser(data["results"])
+    write_to_file('Udemy [{}]'.format(courseName), course_data)
 
 def logout() :
     '''Logout From Udemy'''
@@ -152,16 +132,30 @@ def logout() :
         session.get('http://www.udemy.com/user/logout')
         return 'Logout Sucessful'
     except error : return error_box[3]
+    
+def buildObject(obj) :
+    if ("asset" in obj) and (obj["asset"]["asset_type"] == "Video") : 
+        dl = "https://www.udemy.com/{}/learn/v4/t/lecture/{}?start=0".format(courseName, obj['id'])
+        return dl
+    
+def is_not_undefined(x):
+    return x != None
+
+    
+def parser(api) :
+    links = list(map(buildObject,api))
+    data = list(filter(is_not_undefined, links))
+    return data
 
 if __name__ == '__main__' :
     course = input('Enter Course-Name : ')
-    course_name = despace(course)
-    print(course_name)
+    courseName = despace(course)
+    print(courseName)
     login()
-    course_id = int(input('Enter Your Course ID :> '))
+    course_id = get_course_id(courseName)
     suck_endpoint(course_id)
-    print('done')
-    print('logging out')
+    print('Links Collected')
+    print('Logging Out')
     logout()
-    print('logged out successfully')
+    print('Logged Out Successfully')
     
