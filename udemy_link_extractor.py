@@ -112,11 +112,11 @@ def get_course_id(courseName):
         print('Please Enroll in this course')
         sys.exit(1)
 
-    print('Searching for course id...')
+    print('Searching for course id... ', end="")
     match = re.search(r'property="og:image"\s+content="([^"]+)"', markup, re.IGNORECASE).groups()[0]
-    print(match)
+    # print(match)
     courseId = re.search(r'(\d+)_', match).groups()[0]
-    print('Found course id: %s', courseId)
+    print('Found course id: ', courseId)
     return int(courseId)
 
 def suck_endpoint(courseId) :
@@ -144,7 +144,7 @@ def is_not_undefined(x):
     
 def parser(api) :
     links = list(map(buildObject,api))
-    data = list(filter(is_not_undefined, links))
+    data = list(filter(is_not_undefined, links)) #this line literally filters the returned object
     return data
 
 if __name__ == '__main__' :
@@ -157,5 +157,6 @@ if __name__ == '__main__' :
     print('Links Collected')
     print('Logging Out')
     logout()
-    print('Logged Out Successfully')
+    print('Logged Out Successfully\n')
+    print("Your Download Links Can Be found in a file named => 'Udemy [{}]'".format(courseName))
     
